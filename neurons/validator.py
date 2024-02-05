@@ -770,6 +770,7 @@ def main( config ):
                 )
                 
                 if result: 
+                    bt.logging.info(f"result of set_weight: {result}")
                     bt.logging.success('✅ Successfully set weights.')
                     torch.save(scores, scores_file)
                     bt.logging.info(f"Saved weights to \"{scores_file}\"")
