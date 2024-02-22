@@ -120,7 +120,8 @@ class Miner:
         if utils.update_flag:
             synapse.available = False
             return synapse
-        synapse.available = not utils.is_process_running(processes)
+        synapse.available = True
+        # not utils.is_process_running(processes)
         return synapse
 
     def blacklist_join( self, synapse: protocol.Join ) -> Tuple[bool, str]:
@@ -170,7 +171,7 @@ class Miner:
             return synapse
         except Exception as e:
             # if failed, set joining to false
-            bt.logging.info(f"❌ Error {e}")
+            bt.logging.info(f"🛑 Error {e}")
             traceback.print_exc()
             synapse.joining = False
             synapse.reason = str(e)

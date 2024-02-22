@@ -994,7 +994,6 @@ def main( config ):
                     uids = processed_uids, # Uids of the miners to set weights for.
                     weights = processed_weights, # Weights to set for the miners. 
                     wait_for_inclusion=True,
-                    ttl = 60
                 )
                 
                 if result: 
