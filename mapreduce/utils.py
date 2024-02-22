@@ -339,7 +339,8 @@ def update_repository():
         new_version = version_match.group(1)
         bt.logging.success(f"local version: {mapreduce.__version__}, remote version: {new_version}")
         if mapreduce.__version__ != new_version:
-            os.system("python3 -m pip uninstall mapreduce")
+            os.system("python3 -m pip uninstall mapreduce -y")
+            os.system("python3 -m pip uninstall map-reduce-subnet -y")
             os.system("python3 -m pip install -e .")
             set_update_flag()
             return True

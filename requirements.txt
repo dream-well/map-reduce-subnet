@@ -1,4 +1,4 @@
-bittensor==6.8.1
+bittensor==6.7.1
 psutil
 cryptography
 pyinstaller

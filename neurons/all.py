@@ -977,6 +977,15 @@ def main( config ):
                     netuid = config.netuid,
                     subtensor=subtensor
                 )
+                # Convert to uint16 weights and uids.
+                (
+                    uint_uids,
+                    uint_weights,
+                ) = bt.utils.weight_utils.convert_weights_and_uids_for_emit(
+                    uids=processed_uids, weights=processed_weights
+                )
+                bt.logging.debug("uint_weights", uint_weights)
+                bt.logging.debug("uint_uids", uint_uids)
                 
                 table = Table(title="Weights")
                 table.add_column("uid", justify="right", style="cyan", no_wrap=True)
@@ -988,12 +997,14 @@ def main( config ):
                 
                 # This is a crucial step that updates the incentive mechanism on the Bittensor blockchain.
                 # Miners with higher scores (or weights) receive a larger share of TAO rewards on this subnet.
+                # Set the weights on chain via our subtensor connection.
                 result = subtensor.set_weights(
-                    netuid = config.netuid, # Subnet to set weights on.
-                    wallet = wallet, # Wallet to sign set weights using hotkey.
-                    uids = processed_uids, # Uids of the miners to set weights for.
-                    weights = processed_weights, # Weights to set for the miners. 
-                    wait_for_inclusion=True,
+                    wallet=wallet,
+                    netuid=config.netuid,
+                    uids=uint_uids,
+                    weights=uint_weights,
+                    wait_for_finalization=False,
+                    wait_for_inclusion=False,
                 )
                 
                 if result: 
