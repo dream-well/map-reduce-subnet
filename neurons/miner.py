@@ -49,7 +49,7 @@ class Miner(BaseMinerNeuron):
         return synapse
 
     async def blacklist(
-        self, synapse: taomap.protocol.Dummy
+        self, synapse: taomap.protocol.Benchmark
     ) -> typing.Tuple[bool, str]:
         # TODO(developer): Define how miners should blacklist requests.
         uid = self.metagraph.hotkeys.index(synapse.dendrite.hotkey)
@@ -83,7 +83,7 @@ class Miner(BaseMinerNeuron):
         )
         return False, "Hotkey recognized!"
 
-    async def priority(self, synapse: taomap.protocol.Dummy) -> float:
+    async def priority(self, synapse: taomap.protocol.Benchmark) -> float:
         # TODO(developer): Define how miners should prioritize requests.
         caller_uid = self.metagraph.hotkeys.index(
             synapse.dendrite.hotkey
