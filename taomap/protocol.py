@@ -18,6 +18,7 @@
 from typing import Optional, List, Dict
 import bittensor as bt
 import pydantic
+import time
 
 """
 Represents a software version with major, minor, and patch components.
@@ -114,6 +115,15 @@ class BenchmarkResult( pydantic.BaseModel ):
 
 """
 Speed test
+
+TODO: Add security checks
 """
-class SpeedTest( MapSynapse ):
-    result: Optional[Dict] = None
+class Benchmark( MapSynapse ):
+    shape: Optional[List[int]] = None
+    tensor: Optional[bt.Tensor] = None
+    
+    def deserialize(self):
+        return [time.time(), self.tensor]
+
+class ShareGradients():
+    gradiens: Optional[List[bt.Tensor]]

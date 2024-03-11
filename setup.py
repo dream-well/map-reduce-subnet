@@ -50,7 +50,7 @@ with open(path.join(here, 'README.md'), encoding='utf-8') as f:
     long_description = f.read()
 
 # loading version from setup.py
-with codecs.open(os.path.join(here, 'mapreduce/__init__.py'), encoding='utf-8') as init_file:
+with codecs.open(os.path.join(here, 'taomap/__init__.py'), encoding='utf-8') as init_file:
     version_match = re.search(r"^__version__ = ['\"]([^'\"]*)['\"]", init_file.read(), re.M)
     version_string = version_match.group(1)
 
