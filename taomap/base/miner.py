@@ -190,3 +190,7 @@ class BaseMinerNeuron(BaseNeuron):
 
         # Sync the metagraph.
         self.metagraph.sync(subtensor=self.subtensor)
+
+    def save_state(self):
+        """Saves the state of the miner to the disk."""
+        return
