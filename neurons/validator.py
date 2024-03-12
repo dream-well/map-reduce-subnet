@@ -85,6 +85,19 @@ class Validator(BaseValidatorNeuron):
         self.term_bias = (self.block_height - constants.ORIGIN_TERM_BLOCK) % constants.BLOCKS_PER_TERM
 
     async def forward(self):
+        axon = self.metagraph.axons[3]
+        synapse = taomap.protocol.Benchmark(shape=list(constants.BENCHMARK_SHAPE))
+        benchmark_at = time.time()
+        bt.logging.info("Sending benchmark request to miner 3")
+        responses = self.dendrite.query([axon], synapse, timeout = 120, deserialize = True)
+        if responses is None:
+            bt.logging.info(f"Response from {3}: None")
+            return
+        [arrived_at, size] = responses[0]
+        bt.logging.info(f"Response from {3}: {(size / 1024 / 1024):.2f} MB, time: {arrived_at - benchmark_at}")
+        return
+
+    async def forward1(self):
         """
         Validator forward pass. Consists of:
         - Generating the query
@@ -104,7 +117,7 @@ class Validator(BaseValidatorNeuron):
             # Commit hash of the next term seed
             if self.term_bias >= constants.BLOCKS_SEEDHASH_START and self.term_bias < constants.BLOCKS_SEEDHASH_END:
                 if not self.is_seedhash_commited:
-                    self.is_seedhash_commited = self.commit_data_mock({
+                    self.is_seedhash_commited = self.commit_data({
                         "type": "seedhash",
                         "term": self.term + 1,
                         "seedhash": hash(str(self.next_seed))
@@ -121,7 +134,7 @@ class Validator(BaseValidatorNeuron):
                     self.is_uploaded_group = self.upload_state()
                 # Commit seed
                 if self.is_uploaded_group and not self.is_seed_commited:
-                    self.is_seed_commited = self.commit_data_mock({
+                    self.is_seed_commited = self.commit_data({
                             "type": "seed",
                             "term": self.term,
                             "seedhash": hash(str(self.seed)),
@@ -135,7 +148,6 @@ class Validator(BaseValidatorNeuron):
             if self.term_bias >= constants.BLOCKS_SHARE_SEED and self.term_bias <= constants.BLOCKS_START_BENCHMARK:
                 if self.voted_uid is None:
                     self.voted_uid, self.voted_groups = self.get_vote_result()
-                return
             
             # Benchmark
             if self.term_bias >= constants.BLOCKS_START_BENCHMARK and self.term_bias < constants.BLOCKS_SEEDHASH_START:
@@ -168,10 +180,12 @@ class Validator(BaseValidatorNeuron):
                 current_group_id = (term_bias - constants.BLOCKS_START_BENCHMARK) // constants.BLOCKS_PER_GROUP
                 if self.voted_uid is None:
                     bt.logging.warning("No voted uid")
+                    time.sleep(2)
                     break
                 if current_group_id >= len(self.voted_groups):
                     bt.logging.info(f"No group info for {current_group_id}")
-                    break
+                    time.sleep(2)
+                    continue
                 current_group = self.voted_groups[current_group_id]
                 bt.logging.info(f"Benchmarking group {current_group_id}: {current_group}")
 
@@ -181,7 +195,7 @@ class Validator(BaseValidatorNeuron):
                 responses = self.dendrite.query(axons, synapse, timeout = 120, deserialize = True)
                 for i, uid in enumerate(current_group):
                     response = responses[i]
-                    if response is None:
+                    if response is None or response[1] is None:
                         self.benchmark_state[uid] = -1
                         continue
                     data: bt.Tensor = response[1]
@@ -245,7 +259,7 @@ class Validator(BaseValidatorNeuron):
         # Get all commits
         commits = []
         for uid in validator_uids:
-            commit_data = self.get_commit_data_mock(uid)
+            commit_data = self.get_commit_data(uid)
             bt.logging.debug(f"Commit data {uid}: {commit_data}")
             if commit_data is None:
                 continue
