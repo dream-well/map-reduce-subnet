@@ -32,6 +32,7 @@ from taomap.base.neuron import BaseNeuron
 from taomap.mock import MockDendrite
 from taomap.utils.config import add_validator_args
 
+import traceback
 
 class BaseValidatorNeuron(BaseNeuron):
     """
@@ -115,7 +116,11 @@ class BaseValidatorNeuron(BaseNeuron):
             self.forward()
             for _ in range(self.config.neuron.num_concurrent_forwards)
         ]
-        await asyncio.gather(*coroutines)
+        try:
+            await asyncio.gather(*coroutines)
+        except BaseException as e:
+            bt.logging.error(f"Error in concurrent_forward: {e}")
+            bt.logging.debug(traceback.format_exc())
 
     def run(self):
         """
