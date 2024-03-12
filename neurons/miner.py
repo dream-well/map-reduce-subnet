@@ -44,8 +44,11 @@ class Miner(BaseMinerNeuron):
     async def forward(
         self, synapse: taomap.protocol.Benchmark
     ) -> taomap.protocol.Benchmark:
+        uid = self.metagraph.hotkeys.index(synapse.dendrite.hotkey)
+        bt.logging.info(f"Benchmark request from validator-{uid} {synapse.dendrite.hotkey[:5]}")
         torch_tensor = torch.zeros(*synapse.shape)
         synapse.tensor = bt.Tensor.serialize(torch_tensor)
+        bt.logging.info("Returning tensor", synapse.shape)
         return synapse
 
     async def blacklist(
