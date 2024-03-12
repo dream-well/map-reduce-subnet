@@ -66,24 +66,13 @@ class Miner(BaseMinerNeuron):
             )
             return True, "Unrecognized hotkey"
 
-        if self.config.blacklist.force_validator_permit:
-            # If the config is set to force validator permit, then we should only allow requests from validators.
-            if not self.metagraph.validator_permit[uid]:
-                bt.logging.warning(
-                    f"Blacklisting a request from non-validator hotkey {synapse.dendrite.hotkey}"
-                )
-                return True, "Non-validator hotkey"
-
-        if self.metagraph.stake[uid] < self.config.blacklist.min_stake:
+        if self.metagraph.stake[uid] < constants.VALIDATOR_MIN_STAKE:
             # If the stake is less than the minimum stake, then we should ignore the request.
             bt.logging.trace(
                 f"Blacklisting request from low-stake hotkey {synapse.dendrite.hotkey}"
             )
             return True, "Low-stake hotkey"
 
-        bt.logging.trace(
-            f"Not Blacklisting recognized hotkey {synapse.dendrite.hotkey}"
-        )
         return False, "Hotkey recognized!"
 
     async def priority(self, synapse: taomap.protocol.Benchmark) -> float:
