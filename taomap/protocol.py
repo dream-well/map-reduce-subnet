@@ -123,7 +123,9 @@ class Benchmark( MapSynapse ):
     tensor: Optional[bt.Tensor] = None
     
     def deserialize(self):
-        return [time.time(), self.tensor]
+        tensor = self.tensor.deserialize()
+        size_in_bytes = tensor.element_size() * tensor.numel()
+        return [time.time(), size_in_bytes]
 
 class ShareGradients():
     gradiens: Optional[List[bt.Tensor]]
