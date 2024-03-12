@@ -45,7 +45,7 @@ class Miner(BaseMinerNeuron):
         self, synapse: taomap.protocol.Benchmark
     ) -> taomap.protocol.Benchmark:
         torch_tensor = torch.zeros(*synapse.shape)
-        synapse.tensor = bt.tensor(torch_tensor)
+        synapse.tensor = bt.Tensor.serialize(torch_tensor)
         return synapse
 
     async def blacklist(
