@@ -20,7 +20,7 @@ import bittensor as bt
 
 from taomap.validator.reward import get_rewards
 from taomap.utils.uids import get_random_uids
-import constants
+import taomap.constants as constants
 
 async def forward(self):
     """

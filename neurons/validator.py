@@ -30,7 +30,7 @@ from taomap.validator import forward
 from taomap.base.validator import BaseValidatorNeuron
 import datetime as dt
 import wandb
-import constants
+import taomap.constants as constants
 import random
 from sklearn.cluster import KMeans
 import numpy as np

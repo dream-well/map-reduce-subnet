@@ -22,7 +22,7 @@ import bittensor as bt
 
 # Bittensor Miner:
 import taomap
-import constants
+import taomap.constants as constants
 # import base miner class which takes care of most of the boilerplate
 from taomap.base.miner import BaseMinerNeuron
 import torch
