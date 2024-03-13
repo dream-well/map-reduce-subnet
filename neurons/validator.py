@@ -40,6 +40,8 @@ import functools
 import taomap.utils as utils
 import traceback
 import threading
+from rich.table import Table
+from rich.console import Console
 
 class Validator(BaseValidatorNeuron):
     """
@@ -85,19 +87,6 @@ class Validator(BaseValidatorNeuron):
         self.term_bias = (self.block_height - constants.ORIGIN_TERM_BLOCK) % constants.BLOCKS_PER_TERM
 
     async def forward(self):
-        axon = self.metagraph.axons[3]
-        synapse = taomap.protocol.Benchmark(shape=list(constants.BENCHMARK_SHAPE))
-        benchmark_at = time.time()
-        bt.logging.info("Sending benchmark request to miner 3")
-        responses = self.dendrite.query([axon], synapse, timeout = 120, deserialize = True)
-        if responses is None:
-            bt.logging.info(f"Response from {3}: None")
-            return
-        [arrived_at, size] = responses[0]
-        bt.logging.info(f"Response from {3}: {(size / 1024 / 1024):.2f} MB, time: {arrived_at - benchmark_at}")
-        return
-
-    async def forward1(self):
         """
         Validator forward pass. Consists of:
         - Generating the query
@@ -107,7 +96,6 @@ class Validator(BaseValidatorNeuron):
         - Updating the scores
         """
         try: 
-            self.update_term_bias()
             bt.logging.info(f"Current block height: {self.block_height}, current term: {self.current_term}, blocks: {self.term_bias}")
             if self.current_term > self.term:
                 bt.logging.info(f"New term {self.current_term}")
@@ -310,31 +298,34 @@ class Validator(BaseValidatorNeuron):
 
         return voted_commit['uid'], voted_commit['groups']
         
-    def upload_state(self):
-        """
-        Uploads the seed and groups to wandb
-        """
+    def upload_to_wandb(self, artifact_name, filename, data):
         try:
-            artifact = wandb.Artifact(f'state-{self.uid}', type = 'dataset')
-            file_path = self.config.neuron.full_path + f'/{self.term}.json'
+            artifact = wandb.Artifact(artifact_name, type = 'dataset')
+            file_path = self.config.neuron.full_path + f'/{filename}.json'
             with open(file_path, 'w') as f:
-                json_str = json.dumps({
-                    "term": self.term,
-                    "seed": self.seed,
-                    "hash": hash(str(self.seed)),
-                    "groups": self.groups,
-                    "grouphash": hash(str(self.groups))
-                }, indent=4)
+                json_str = json.dumps(data, indent=4)
                 f.write(json_str)
             artifact.add_file(file_path)
             self.wandb_run.log_artifact(artifact)
             artifact.wait()
-            bt.logging.info(f'Uploaded {self.term}.json to wandb')
+            bt.logging.info(f'Uploaded {filename}.json to wandb')
             return True
         except Exception as e:
             bt.logging.error(f'Error saving seed info: {e}')
             bt.logging.debug(traceback.format_exc())
             return False
+
+    def upload_state(self):
+        """
+        Uploads the seed and groups to wandb
+        """
+        return self.upload_to_wandb(f'state-{self.uid}', f'{self.term}', {
+                    "term": self.term,
+                    "seed": self.seed,
+                    "hash": hash(str(self.seed)),
+                    "groups": self.groups,
+                    "grouphash": hash(str(self.groups))
+                })
 
     def new_wandb_run(self):
         """Creates a new wandb run to save information to."""
@@ -448,6 +439,50 @@ class Validator(BaseValidatorNeuron):
             uid_groups.append(uid_group)
         random.shuffle(uid_groups)
         return uid_groups
+    
+    def sync(self):
+        super().sync()
+
+        self.update_term_bias()
+
+        if self.step % 10 > 0:
+            return
+        
+        miner_uids = [uid for uid in self.metagraph.uids if self.metagraph.stake[uid] < constants.VALIDATOR_MIN_STAKE and self.metagraph.axons[uid].ip != "0.0.0.0" ]
+        axons = [self.metagraph.axons[uid] for uid in miner_uids]
+        synapse = taomap.protocol.MinerStatus(version=constants.__version__)
+        responses = self.dendrite.query(axons, synapse, timeout = 3, deserialize = True)
+        status_texts = {}
+        self.miner_status = {}
+        for i, uid in enumerate(miner_uids):
+            job_id, status = responses[i]
+            status_texts[int(uid)] = status
+            self.miner_status[int(uid)] = {
+                "job_id": job_id,
+                "status": status
+            }
+            
+        self.upload_to_wandb(f'miner-status-{self.uid}', f'{self.current_term}', status_texts)
+        self.print_miner_status(status_texts)
+
+
+    def print_miner_status(self, status_texts):
+        table = Table(title="Miners")
+        table.add_column("uid", justify="right", style="cyan", no_wrap=True)
+        table.add_column("status", style="magenta", no_wrap=True)
+        for uid in status_texts:
+            status = status_texts[uid]
+            icon = '🟢'
+            if status == 'working':
+                icon = '🔵'
+            elif status == 'offline':
+                icon = '🛑'
+            table.add_row(
+                str(uid),
+                f"{icon} {status}"
+            )
+        console = Console()
+        console.print(table)
 
 # The main function parses the configuration and runs the validator.
 if __name__ == "__main__":
