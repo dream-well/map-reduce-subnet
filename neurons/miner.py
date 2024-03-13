@@ -38,16 +38,19 @@ class Miner(BaseMinerNeuron):
 
     def __init__(self, config=None):
         super(Miner, self).__init__(config=config)
+        self.benchmark_tensor = bt.Tensor.serialize(torch.zeros(*constants.BENCHMARK_SHAPE))
+        self.job_id = 0
 
-        # TODO(developer): Anything specific to your use case you can do here
+        self.axon.attach(
+            forward_fn=self.forward_miner_status
+        )
 
     async def forward(
         self, synapse: taomap.protocol.Benchmark
     ) -> taomap.protocol.Benchmark:
         uid = self.metagraph.hotkeys.index(synapse.dendrite.hotkey)
         bt.logging.info(f"Benchmark request from validator-{uid} {synapse.dendrite.hotkey[:5]}")
-        torch_tensor = torch.zeros(*synapse.shape)
-        synapse.tensor = bt.Tensor.serialize(torch_tensor)
+        synapse.tensor = self.benchmark_tensor
         bt.logging.info("Returning tensor", synapse.shape)
         return synapse
 
@@ -88,6 +91,11 @@ class Miner(BaseMinerNeuron):
         )
         return prirority
 
+    async def forward_miner_status(self, synapse: taomap.protocol.MinerStatus) -> taomap.protocol.MinerStatus:
+        synapse.version = constants.__version__
+        synapse.job_id = self.job_id
+        return synapse
+        
 
 # This is the main function, which runs the miner.
 if __name__ == "__main__":

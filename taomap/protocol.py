@@ -21,19 +21,11 @@ import pydantic
 import time
 
 """
-Represents a software version with major, minor, and patch components.
-"""
-class Version (pydantic.BaseModel):
-    major_version: Optional[int] = None
-    minor_version: Optional[int] = None
-    patch_version: Optional[int] = None
-
-"""
 Extends the Bittensor Synapse with an additional version attribute, 
 used for compatibility and version control in mapreduce operations.
 """
 class MapSynapse ( bt.Synapse ):
-    version: Optional[Version] = None
+    version: Optional[str] = None
 
 """
 Defines the structure of a mapreduce job, including information about network configuration, 
@@ -60,58 +52,21 @@ A specialized Synapse representing the status of a miner,
 including its availability and memory resources.
 """
 class MinerStatus( MapSynapse ):
-    free_memory: Optional[int] = None
-    available: Optional[bool] = None
+    job_id: Optional[int] = None
 
-"""
-Defines the status of a validator, particularly whether it is available for processing requests.
-"""
-class ValidatorStatus( pydantic.BaseModel ):
-    available: Optional[bool] = None
-    
-"""
-Represents a synapse message for joining a mapreduce job, 
-including the job details and ranks of participating nodes.
-"""
-class Join( MapSynapse ):
-    ranks: Optional[Dict] = None
-    job: Optional[Job] = None
-    joining: Optional[bool] = None
-    reason: Optional[str] = None
-
-"""
-Synapse message used when a node needs to connect to the master node for a job.
-"""
-class ConnectMaster( MapSynapse ):
-    job: Optional[Job] = None
-
-"""
-Synapse message for requesting a benchmarking operation, 
-specifying the miner UID and job details.
-"""
-class RequestBenchmark( MapSynapse ):
-    miner_uid: Optional[int] = None
-    job: Optional[Job] = None
-
-"""
-Synapse message encapsulating the results of a benchmarking operation.
-"""
-class BenchmarkResults( MapSynapse ):
-    results: Optional[List] = []
-    bots: Optional[List] = []
-    
-"""
-Defines the structure for the results of a benchmarking operation, 
-including metrics like bandwidth, speed, and duration.
-"""
-class BenchmarkResult( pydantic.BaseModel ):
-    bandwidth: Optional[int] = None
-    speed: Optional[int] = None
-    duration: Optional[int] = None
-    data_length: Optional[int] = None
-    free_memory: Optional[int] = None
-    upload: Optional[int] = None
-    download: Optional[int] = None
+    def deserialize(self):
+        if self.job_id is None:
+            self.job_id = -1
+        status = ""
+        if self.job_id == -1:
+            status = "offline"
+        elif self.job_id == 0:
+            status = "idle"
+        elif self.job_id == 1:
+            status = "benchmarking"
+        elif self.job_id >= 2:
+            status = f"working"
+        return self.job_id, status
 
 """
 Speed test
